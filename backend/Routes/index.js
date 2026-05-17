@@ -17,6 +17,9 @@ router.post('/auth/login', AuthCtrl.login);
 
 // Users
 router.get('/users', authMiddleware, rolePermission(['super_admin']), UserCtrl.list);
+router.post('/users', authMiddleware, rolePermission(['super_admin']), UserCtrl.create);
+router.put('/users/:id', authMiddleware, rolePermission(['super_admin']), UserCtrl.update);
+router.delete('/users/:id', authMiddleware, rolePermission(['super_admin']), UserCtrl.remove);
 
 // Artist
 router.get('/artists', authMiddleware, rolePermission(['super_admin', 'artist_manager']), ArtistCtrl.list);

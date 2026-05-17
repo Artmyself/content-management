@@ -1,50 +1,29 @@
 import { query } from '../../config/db.js';
 import bcrypt from 'bcryptjs';
 
-// 1. List User records with pagination [Role Access: super_admin]
+// 1. List User records [Role Access: super_admin]
 export const list = async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = 10;
-        const offset = (page - 1) * limit;
-
-        // Fetch paginated users
+        // Updated to strictly use full_name
         const users = await query(
-            `SELECT id, first_name, last_name, email, phone, dob, gender, "Address", role, created_at 
-             FROM "user" 
-             ORDER BY created_at DESC 
-             LIMIT $1 OFFSET $2`,
-            [limit, offset]
+            'SELECT id, full_name, email, role, created_at FROM "user" ORDER BY created_at DESC',
+            []
         );
-
-        // Fetch total count for pagination metadata
-        const countResult = await query('SELECT COUNT(*) FROM "user"');
-        const total = parseInt(countResult[0].count);
-
-        res.status(200).json({
-            data: users,
-            pagination: {
-                total,
-                page,
-                pages: Math.ceil(total / limit)
-            }
-        });
+        res.json(users);
     } catch (err) {
-        res.status(500).json({ error: "Failed to fetch users: " + err.message });
+        console.error("User List Error:", err.message);
+        res.status(500).json({ error: err.message });
     }
 };
 
 // 2. Create a new user record [Role Access: super_admin]
 export const create = async (req, res) => {
-    const {
-        first_name, last_name, email, password, phone,
-        dob, gender, address, role
-    } = req.body;
+    const { full_name, email, password, role } = req.body;
 
     try {
-        // Basic Validation
-        if (!email || !password || !role) {
-            return res.status(400).json({ message: "Email, password, and role are required." });
+        // Validation for full_name and other required fields
+        if (!full_name || !email || !password || !role) {
+            return res.status(400).json({ message: "Full Name, email, password, and role are required." });
         }
 
         // Check if email already exists
@@ -56,13 +35,11 @@ export const create = async (req, res) => {
         // Hash password before saving
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Updated query to use full_name
         const newUser = await query(
-            `INSERT INTO "user" (
-                first_name, last_name, email, password, phone, 
-                dob, gender, "Address", role, created_at, updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
-            RETURNING id, email, role`,
-            [first_name, last_name, email, hashedPassword, phone, dob, gender, address, role]
+            `INSERT INTO "user" (full_name, email, password, role, created_at, updated_at) 
+             VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING id, full_name, role`,
+            [full_name, email, hashedPassword, role]
         );
 
         res.status(201).json({
@@ -77,16 +54,16 @@ export const create = async (req, res) => {
 // 3. Update existing user record [Role Access: super_admin]
 export const update = async (req, res) => {
     const { id } = req.params;
-    const { first_name, last_name, phone, dob, gender, address, role } = req.body;
+    const { full_name, role, email } = req.body;
 
     try {
+        // Updated SQL to use full_name instead of first/last name
         const updatedUser = await query(
             `UPDATE "user" 
-             SET first_name = $1, last_name = $2, phone = $3, dob = $4, 
-                 gender = $5, "Address" = $6, role = $7, updated_at = NOW()
-             WHERE id = $8 
-             RETURNING id, first_name, last_name, role`,
-            [first_name, last_name, phone, dob, gender, address, role, id]
+             SET full_name = $1, role = $2, email = $3, updated_at = NOW()
+             WHERE id = $4 
+             RETURNING id, full_name, email, role`,
+            [full_name, role, email, id]
         );
 
         if (updatedUser.length === 0) {
@@ -119,11 +96,11 @@ export const remove = async (req, res) => {
     }
 };
 
-// Helper: Get Single User for Edit Profile/Detail
+// Helper: Get Single User [Updated to full_name]
 export const getById = async (req, res) => {
     try {
         const user = await query(
-            'SELECT id, first_name, last_name, email, phone, dob, gender, "Address", role FROM "user" WHERE id = $1',
+            'SELECT id, full_name, email, role, created_at FROM "user" WHERE id = $1',
             [req.params.id]
         );
         if (user.length === 0) return res.status(404).json({ message: "User not found" });

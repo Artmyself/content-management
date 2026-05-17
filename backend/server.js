@@ -13,7 +13,8 @@ const aj = arcjet({
     key: process.env.ARCJET_KEY?.trim() || "",
     characteristics: ["ip.src"],
     rules: [
-        shield({ mode: "LIVE" }),
+        // Change mode to "DRY_RUN" while developing
+        shield({ mode: "DRY_RUN" }),
         fixedWindow({
             mode: "LIVE",
             match: "/api/auth/login",
