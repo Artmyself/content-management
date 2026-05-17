@@ -1,21 +1,19 @@
-// connect database
-import { neon } from "@neondatabase/serverless";
-import dotenv from "dotenv";
-
-dotenv.config();
+import { neon } from '@neondatabase/serverless';
+import 'dotenv/config';
 
 
 const { PGHOST, PGDATABASE, PGUSER, PGPASSWORD } = process.env
+const connectionURL = `postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}/${PGDATABASE}`;
 
-const sql = neon(`postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}/${PGDATABASE}`);
 
-const query = async (text, params) => {
+const sql = neon(connectionURL);
+
+export const query = async (text, params) => {
     try {
-        return await sql(text, params);
+        const result = await sql(text, params);
+        return result;
     } catch (err) {
-        console.error('Database Error:', err);
+        console.error('Database Connection Error:', err);
         throw err;
     }
 };
-
-module.exports = { query };
