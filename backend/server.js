@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import arcjet, { shield, fixedWindow } from "@arcjet/node";
 import routes from "./Routes/index.js";
+import apiRoutes from './Routes/index.js'; // Check this path!
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
+app.use('/api', apiRoutes); // This makes the route /api/artists
 
 // Arcjet Middleware
 app.use(async (req, res, next) => {

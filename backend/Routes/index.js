@@ -16,6 +16,9 @@ router.post('/auth/register', AuthCtrl.register);
 router.post('/auth/login', AuthCtrl.login);
 
 // Users
+// router.get('/users/export', authMiddleware, rolePermission(['super_admin']), UserCtrl.exportCSV);
+// router.post('/users/import', authMiddleware, rolePermission(['super_admin']), upload.single('file'), UserCtrl.importCSV);
+
 router.get('/users', authMiddleware, rolePermission(['super_admin']), UserCtrl.list);
 router.post('/users', authMiddleware, rolePermission(['super_admin']), UserCtrl.create);
 router.put('/users/:id', authMiddleware, rolePermission(['super_admin']), UserCtrl.update);
@@ -23,11 +26,13 @@ router.delete('/users/:id', authMiddleware, rolePermission(['super_admin']), Use
 
 // Artist
 router.get('/artists', authMiddleware, rolePermission(['super_admin', 'artist_manager']), ArtistCtrl.list);
+router.post('/artists', authMiddleware, rolePermission(['artist_manager']), ArtistCtrl.create);
 router.get('/artists/export', authMiddleware, rolePermission(['artist_manager']), ArtistCtrl.exportCSV);
 router.post('/artists/import', authMiddleware, rolePermission(['artist_manager']), upload.single('file'), ArtistCtrl.importCSV);
 
 // Music
-router.get('/music/:artistId', authMiddleware, MusicCtrl.getByArtist);
+// router.get('/music/:artistId', authMiddleware, rolePermission(['super_admin', 'artist_manager', 'artist']), MusicCtrl.getByArtist);
 router.post('/music', authMiddleware, rolePermission(['artist']), MusicCtrl.create);
-
+router.put('/music/:id', authMiddleware, rolePermission(['artist']), MusicCtrl.update);
+router.delete('/music/:id', authMiddleware, rolePermission(['artist']), MusicCtrl.remove);
 export default router;

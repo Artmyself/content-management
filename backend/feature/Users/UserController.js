@@ -1,5 +1,10 @@
 import { query } from '../../config/db.js';
 import bcrypt from 'bcryptjs';
+import { UserService } from './Service.js';
+import { UserRepository } from './Repository.js';
+import { Parser } from 'json2csv';
+import fs from 'fs';
+import csv from 'csv-parser';
 
 // 1. List User records [Role Access: super_admin]
 export const list = async (req, res) => {
@@ -94,6 +99,51 @@ export const remove = async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: "Failed to delete user: " + err.message });
     }
+};
+
+export const exportCSV = async (req, res) => {
+    try {
+        const users = await UserService.listUsers(''); // Get all users
+        const fields = ['full_name', 'email', 'role'];
+        const json2csvParser = new Parser({ fields });
+        const csvData = json2csvParser.parse(users);
+
+        res.header('Content-Type', 'text/csv');
+        res.attachment('users_export.csv');
+        return res.send(csvData);
+    } catch (err) {
+        res.status(500).json({ error: "Export failed: " + err.message });
+    }
+};
+
+// --- IMPORT USERS FROM CSV ---
+export const importCSV = async (req, res) => {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+    const results = [];
+    const filePath = req.file.path;
+
+    fs.createReadStream(filePath)
+        .pipe(csv())
+        .on('data', (data) => results.push(data))
+        .on('end', async () => {
+            try {
+                for (const row of results) {
+                    // Logic handled via Service to ensure password hashing
+                    await UserService.createUser({
+                        full_name: row.full_name,
+                        email: row.email,
+                        password: row.password || 'ChangeMe123', // Default if missing
+                        role: row.role || 'artist'
+                    });
+                }
+                fs.unlinkSync(filePath);
+                res.json({ message: `${results.length} users imported successfully` });
+            } catch (err) {
+                if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+                res.status(500).json({ error: "Import failed: " + err.message });
+            }
+        });
 };
 
 // Helper: Get Single User [Updated to full_name]

@@ -1,16 +1,23 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useFetch } from '../../hooks/useFetch.js';
 import Table from '../../components/Common/Table.jsx';
+import Pagination from '../../components/Common/Pagination.jsx';
 import Modal from '../../components/Common/Modal.jsx';
 import api from '../../api/axiosInstance.js';
-import { UserPlus, Edit, Trash2 } from 'lucide-react';
+import { UserPlus, Edit, Trash2, Download, Upload } from 'lucide-react';
+
+import { useApi } from '../../hooks/useApi.js';
+import { UserService } from '../../api/userService.js';
 
 const UserList = () => {
-    // 1. Fetch the data once
-    const { data, loading, refetch } = useFetch('/users');
 
     // 2. Search State
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState(''); // Value after delay
+    const [page, setPage] = useState(1);
+
+    // 1. Fetch the data once
+    const { data, loading, refetch } = useApi(UserService.list, [searchTerm, page]);
 
     // 3. Modal & Form States
     const [isModalOpen, setModalOpen] = useState(false);
@@ -22,21 +29,26 @@ const UserList = () => {
         role: 'artist_manager'
     });
 
-    // 4. FILTER LOGIC: This updates automatically when searchTerm or data changes
-    const filteredData = useMemo(() => {
-        // If search is empty, return original data
-        if (!searchTerm.trim()) return data;
 
-        const lowerSearch = searchTerm.toLowerCase();
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+        }, 500);
 
-        return data.filter((user) => {
-            return (
-                user.full_name?.toLowerCase().includes(lowerSearch) ||
-                user.email?.toLowerCase().includes(lowerSearch) ||
-                user.role?.toLowerCase().includes(lowerSearch)
-            );
-        });
-    }, [data, searchTerm]); // Dependencies: Re-run filter only if these change
+        return () => clearTimeout(handler); // Cleanup timeout on next keystroke
+    }, [searchTerm]);
+
+    // FILTER LOGIC: Uses the debounced value
+    const filteredUsers = useMemo(() => {
+        const sourceData = data || [];
+        if (!debouncedSearch.trim()) return sourceData;
+
+        const lowerSearch = debouncedSearch.toLowerCase();
+        return sourceData.filter(user =>
+            user.full_name?.toLowerCase().includes(lowerSearch) ||
+            user.email?.toLowerCase().includes(lowerSearch)
+        );
+    }, [data, debouncedSearch]);
 
     const handleEdit = (user) => {
         setEditId(user.id);
@@ -92,10 +104,76 @@ const UserList = () => {
         }
     ];
 
+    // --- LOGIC: Export ---
+    // const handleExport = async () => {
+    //     try {
+    //         const response = await UserService.exportCSV();
+    //         const url = window.URL.createObjectURL(new Blob([response.data]));
+    //         const link = document.createElement('a');
+    //         link.href = url;
+    //         link.setAttribute('download', 'system_users.csv');
+    //         document.body.appendChild(link);
+    //         link.click();
+    //     } catch (err) { alert("Export failed"); }
+    // };
+
+    // // --- LOGIC: Import ---
+    // const handleImport = async (e) => {
+    //     const file = e.target.files[0];
+    //     if (!file) return;
+
+    //     const formData = new FormData();
+    //     formData.append('file', file);
+
+    //     try {
+    //         await UserService.importCSV(formData);
+    //         alert("Users imported successfully");
+    //         refetch();
+    //     } catch (err) { alert("Import failed: " + err.response?.data?.error); }
+    // };
+
+
     return (
         <div className="space-y-6">
             {/* The Table component receives the filteredData and the setter for search */}
             <Table
+                title="User Management"
+                columns={columns}
+                data={filteredUsers} // Use filtered list
+                loading={loading}
+                onSearch={(val) => setSearchTerm(val)}
+                actions={
+                    <div className="flex gap-2">
+                        {/* Export Button */}
+                        {/* <button
+                            onClick={handleExport}
+                            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all"
+                        >
+                            <Download size={18} /> Export
+                        </button>
+
+                        <label className="flex items-center gap-2 bg-amber-500 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-amber-600 transition-all cursor-pointer">
+                            <Upload size={18} /> Import
+                            <input type="file" className="hidden" accept=".csv" onChange={handleImport} />
+                        </label> */}
+
+                        {/* Add User Button */}
+                        <button
+                            onClick={() => setModalOpen(true)}
+                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-all"
+                        >
+                            <UserPlus size={18} /> Add User
+                        </button>
+                    </div>
+                }
+            />
+
+            <Pagination
+                current={page}
+                totalPages={Math.ceil((data.total || 0) / 10)}
+                onChange={(p) => setPage(p)}
+            />
+            {/* <Table
                 title="System User Management"
                 columns={columns}
                 data={filteredData} // IMPORTANT: Use filteredData instead of data
@@ -109,7 +187,7 @@ const UserList = () => {
                         <UserPlus size={18} /> Add User
                     </button>
                 }
-            />
+            /> */}
 
             {/* Modal for Create/Edit */}
             <Modal isOpen={isModalOpen} onClose={() => { setModalOpen(false); setEditId(null); }} title={editId ? "Edit User Account" : "Register New User"}>

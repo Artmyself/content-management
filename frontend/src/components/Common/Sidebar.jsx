@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { AuthContext } from '../../contexts/AuthContext.jsx';
-import { Users, Mic2, LayoutGrid } from 'lucide-react';
+import { Users, Mic2, Music, LayoutGrid, ChevronRight } from 'lucide-react';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
     const { user } = useContext(AuthContext);
@@ -11,13 +11,19 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
             id: 'users',
             label: 'Users',
             icon: <Users size={20} />,
-            roles: ['super_admin'] // Only Super Admin
+            roles: ['super_admin']
         },
         {
             id: 'artists',
             label: 'Artists',
             icon: <Mic2 size={20} />,
-            roles: ['super_admin', 'artist_manager'] // Admin and Manager
+            roles: ['super_admin', 'artist_manager']
+        },
+        {
+            id: 'songs',
+            label: 'Music Collection',
+            icon: <Music size={20} />, // This now works because of the import above
+            roles: ['super_admin', 'artist_manager', 'artist']
         }
     ];
 
@@ -40,13 +46,16 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`w-full flex items-center gap-3 p-3 rounded-xl font-bold transition-all ${isActive
+                                className={`w-full flex items-center justify-between p-3 rounded-xl font-bold transition-all ${isActive
                                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
                                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
                                     }`}
                             >
-                                {tab.icon}
-                                <span className="text-sm">{tab.label}</span>
+                                <div className="flex items-center gap-3">
+                                    {tab.icon}
+                                    <span className="text-sm">{tab.label}</span>
+                                </div>
+                                {isActive && <ChevronRight size={14} />}
                             </button>
                         );
                     })}
@@ -62,7 +71,9 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                     </div>
                     <div className="overflow-hidden">
                         <p className="text-xs font-bold text-slate-800 truncate">{user?.name}</p>
-                        <p className="text-[10px] text-slate-400 capitalize">{user?.role.replace('_', ' ')}</p>
+                        <p className="text-[10px] text-slate-400 capitalize">
+                            {user?.role?.replace('_', ' ')}
+                        </p>
                     </div>
                 </div>
             </div>
