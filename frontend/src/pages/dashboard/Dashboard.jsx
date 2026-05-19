@@ -35,12 +35,15 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="flex min-h-screen bg-slate-50">
+
+        <div className="h-screen w-full flex flex-col bg-slate-50 overflow-hidden">
             <Navbar />
-            <div className="flex w-full pt-16">
+            <div className="flex flex-1 flex-row overflow-hidden">
                 <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-                <main className="flex-1 p-8">
-                    {renderContent()}
+                <main className="flex-1 overflow-y-auto p-8">
+                    <div className="max-w-6xl mx-auto">
+                        {renderContent()}
+                    </div>
                 </main>
             </div>
         </div>
